@@ -1,4 +1,5 @@
 import hashlib
+import time
 import psycopg
 import pymupdf
 from backend.config import settings
@@ -15,7 +16,7 @@ COLLECTION_NAME = settings.COLLECTION_NAME
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_PATH = BASE_DIR / "data"
 BUF_SIZE = 65536 # Hashing the file in 64kb chunks to prevent memory issues with large files
-BATCH = 64 # Batched the chunks before adding into the Postgres Table
+BATCH = 128 # Batched the chunks before adding into the Postgres Table
 
 def main():
     vector_store = PGVector(
@@ -31,6 +32,7 @@ def main():
             for i in range(0, len(chunks), BATCH):
                 vector_store.add_documents(chunks[i:i + BATCH])
                 print(f"Added {min(i + BATCH, len(chunks))}/{len(chunks)} Chunks")
+                time.sleep(0.1)  # Prevent overwhelming the database
         else:
             print("Nothing New to Ingest.")
 
@@ -109,8 +111,8 @@ def load_documents(conn):
 
 def split_documents(documents: list[Document]):
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=150,
+        chunk_size=650,
+        chunk_overlap=65,
     )
 
     return text_splitter.split_documents(documents)

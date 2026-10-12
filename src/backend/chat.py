@@ -12,7 +12,7 @@ EMBEDDING_MODEL = settings.EMBEDDING_MODEL
 COLLECTION_NAME = settings.COLLECTION_NAME
 CHAT_MODEL = settings.CHAT_MODEL
 HISTORY_TABLE = "chat_history"
-HISTORY_MESSAGES = 12
+HISTORY_MESSAGES = 4
 TOP_K = 4
 
 vector_store = PGVector(
@@ -22,11 +22,11 @@ vector_store = PGVector(
 )
 
 retriever = vector_store.as_retriever(search_kwargs={"k": TOP_K})
-llm = ChatOllama(model=CHAT_MODEL)
+llm = ChatOllama(model=CHAT_MODEL, num_ctx=8192)
 
 prompt = ChatPromptTemplate.from_messages(
     [
-        ("system", "Answer using the context below. If the answer is not in the context, say so. Use the conversation history to resolve any follow-up questions."),
+        ("system", "Answer using the context below. If the answer is not in the context, say so. Use the conversation history to resolve any follow-up questions.\n\n CONTEXT:\n{context}"),
         MessagesPlaceholder(variable_name="history", optional=True),
         ("human", "{question}"),
     ]
@@ -53,6 +53,7 @@ def format_documents(docs):
         f"[{d.metadata.get('source')} p.{d.metadata.get('page')}]\n{d.page_content}"
         for d in docs
     )
+
 
 def answer(history, question):
     documents = retriever.invoke(question)
